@@ -11,6 +11,8 @@ docker compose up --build
 
 API: `http://localhost:8080/docs`
 
+Подробный русскоязычный гайд: [docs/GETTING_STARTED_RU.md](docs/GETTING_STARTED_RU.md).
+
 ## Web monitor
 
 The personal monitor is a small Next.js app with no multi-user backend:
