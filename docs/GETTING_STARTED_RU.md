@@ -1,6 +1,6 @@
 # Гайд по подъёму Personal Agent Harness
 
-Этот документ описывает локальный запуск Personal Agent Harness: Python API, web-монитора, корпоративной OpenAI-compatible модели и Ollama на Windows.
+Этот документ описывает локальный запуск Personal Agent Harness в схеме, где Ubuntu работает внутри WSL2, а среда разработки, Codex и Claude находятся в WSL. Ollama запускается на Windows, корпоративная модель вызывается по API.
 
 ## 1. Что получится после запуска
 
@@ -15,14 +15,14 @@ API принимает задачи через `POST /v1/tasks`, выбирае�
 
 ## 2. Предварительные требования
 
-На Ubuntu/macOS нужны:
+В WSL2 нужны:
 
 - Git;
 - Python 3.11 или новее;
 - Node.js 20 или новее и npm;
-- Docker Desktop (опционально, если API запускается контейнером).
+- Docker Desktop с включённой интеграцией для вашей WSL-дистрибуции (опционально, если API запускается контейнером).
 
-Для локального контура на Windows нужен [Ollama](https://ollama.com/download/windows). Корпоративный API должен поддерживать OpenAI-совместимый endpoint `/v1/chat/completions`.
+На Windows нужен [Ollama](https://ollama.com/download/windows). Корпоративный API должен поддерживать OpenAI-совместимый endpoint `/v1/chat/completions`.
 
 Проверка инструментов:
 
@@ -31,8 +31,18 @@ git --version
 python3 --version
 node --version
 npm --version
-docker --version
+docker --version  # если используется Docker Desktop
 ```
+
+Проверить, что это именно WSL2, можно в PowerShell:
+
+```powershell
+wsl -l -v
+```
+
+Для дистрибуции Ubuntu в колонке `VERSION` должно быть значение `2`.
+
+Все команды проекта ниже выполняются внутри Ubuntu/WSL, если отдельно не указано `PowerShell`.
 
 ## 3. Получение проекта
 
@@ -85,19 +95,42 @@ ollama list
 curl http://localhost:11434/api/tags
 ```
 
-Если Python API работает в Docker Desktop, используйте в `.env` адрес:
+Из WSL2 Windows-сервисы обычно доступны через `localhost`. Сначала проверьте:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Если Ollama отвечает, в `.env` оставьте:
+
+```dotenv
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+Если `localhost` не пробрасывается, получите адрес Windows-host из WSL:
+
+```bash
+WIN_HOST=$(ip route show | awk '/default/ {print $3}')
+curl "http://${WIN_HOST}:11434/api/tags"
+```
+
+Тогда используйте:
+
+```dotenv
+OLLAMA_BASE_URL=http://<адрес-Windows-host>:11434
+```
+
+Подставьте вместо `<адрес-Windows-host>` фактическое значение переменной `WIN_HOST`.
+
+Если API запускается в Docker Desktop внутри WSL, адрес `host.docker.internal` обычно подходит:
 
 ```dotenv
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
-Если API работает напрямую на Ubuntu, Windows должен быть доступен по сетевому адресу машины, например:
-
-```dotenv
-OLLAMA_BASE_URL=http://192.168.1.50:11434
-```
-
 Не открывайте Ollama в интернет. Разрешайте доступ только от доверенного хоста или через VPN.
+
+Если Ollama не принимает соединения от WSL, проверьте его настройку привязки к интерфейсу Windows и правила Windows Firewall. Не отключайте Firewall целиком — добавьте точечное разрешение для порта `11434`.
 
 ## 6. Вариант A: запуск API через Docker
 
@@ -238,9 +271,13 @@ python -m pytest -q
 
 API не запущен. Запустите Docker Compose или `uvicorn` из раздела 6/7.
 
+### Ollama не отвечает из WSL
+
+Сначала выполните `curl http://localhost:11434/api/tags` внутри WSL. Если не отвечает, попробуйте адрес `WIN_HOST` из команды выше. Проверьте, что Ollama запущен в Windows и что Windows Firewall разрешает соединение от WSL.
+
 ### Ollama не отвечает из контейнера
 
-Вместо `localhost` используйте `host.docker.internal` и проверьте, что Ollama запущен на Windows.
+Если API запущен через Docker Desktop, вместо `localhost` используйте `host.docker.internal` и проверьте, что Ollama запущен на Windows.
 
 ### Корпоративный API отвечает 401/403
 

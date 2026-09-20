@@ -1,6 +1,6 @@
 # AI Agent Orchestrator
 
-MVP-оркестратор для маршрутизации задач разработки между Codex/Claude на Ubuntu, корпоративной OpenAI-compatible моделью и локальными моделями Ollama на Windows.
+MVP-оркестратор для маршрутизации задач разработки между Codex/Claude в Ubuntu под WSL2, корпоративной OpenAI-compatible моделью и локальными моделями Ollama на Windows.
 
 ## Быстрый запуск
 
